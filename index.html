@@ -1,4 +1,28 @@
-<label for="csv-upload" class="custom-button">Upload CSV</label>
-<input type="file" id="csv-upload" accept=".csv" style="display:none;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Data Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-<div id="status-message"></div>
+    <header>
+        <h1>Upload Your Data</h1>
+        <p>Upload a CSV file to instantly generate summaries and visualizations.</p>
+    </header>
+
+    <main>
+        <label for="csv-upload" class="upload-button">Select CSV File</label>
+        <input type="file" id="csv-upload" accept=".csv" hidden>
+
+        <div id="status-message"></div>
+
+        <h2>Data Preview</h2>
+        <div id="preview-container"></div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
