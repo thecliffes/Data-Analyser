@@ -5,22 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Data Tool</title>
     <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
     <header>
-        <h1>Upload Your Data</h1>
+        <h1>Interactive Data Tool</h1>
         <p>Upload a CSV file to instantly generate summaries and visualisations.</p>
     </header>
 
     <main>
+        <!-- This part remains the same -->
         <label for="csv-upload" class="upload-button">Select CSV File</label>
         <input type="file" id="csv-upload" accept=".csv" hidden>
-
         <div id="status-message"></div>
 
-        <h2>Data Preview</h2>
-        <div id="preview-container"></div>
+        <!-- The data preview section -->
+        <section id="preview-section">
+             <h2>Data Preview</h2>
+             <div id="preview-container"></div>
+        </section>
+
+        <!-- NEW: Add the container for the entire dashboard -->
+        <!-- The 'hidden' class will be removed by JavaScript once the data is ready -->
+        <section id="dashboard-container" class="hidden">
+            <h2>Data Summary</h2>
+            <div id="overall-stats-cards">
+                <!-- This will be filled by JavaScript with stat cards -->
+            </div>
+            
+            <h2>Column Details</h2>
+            <div id="column-details-grid">
+                <!-- This will be filled by JavaScript with a card for each column -->
+            </div>
+        </section>
     </main>
 
     <script src="js/app.js"></script>
