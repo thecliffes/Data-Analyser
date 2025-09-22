@@ -371,41 +371,7 @@
     </div>
 
     <script>
-        // Sample data for demonstration
-        const sampleData = {
-            overall_stats: {
-                rows: 15420,
-                columns: 8,
-                missing_cells: 342,
-                missing_cells_percent: 2.4
-            },
-            column_stats: [
-                {
-                    name: "Name",
-                    type: "Text",
-                    missing: 12,
-                    missing_percent: 0.1
-                },
-                {
-                    name: "Age",
-                    type: "Numeric",
-                    missing: 5,
-                    missing_percent: 0.03
-                },
-                {
-                    name: "Email",
-                    type: "Text",
-                    missing: 89,
-                    missing_percent: 0.6
-                },
-                {
-                    name: "Salary",
-                    type: "Numeric",
-                    missing: 236,
-                    missing_percent: 1.5
-                }
-            ]
-        };
+
 
         // DOM elements
         const fileInput = document.getElementById('csv-upload');
@@ -416,32 +382,141 @@
         // File upload handler
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
-            if (file) {
-                showStatus('Processing file...', 'loading');
+            if (file && file.type === 'text/csv') {
+                showStatus('Processing CSV file...', 'loading');
                 
-                // Simulate file processing
-                setTimeout(() => {
-                    showStatus('File uploaded successfully!', 'success');
-                    showPreview();
-                    buildDashboard(sampleData);
-                }, 1500);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const csvData = e.target.result;
+                        const parsedData = parseCSV(csvData);
+                        showStatus('CSV file loaded successfully!', 'success');
+                        showPreview(parsedData.preview);
+                        buildDashboard(parsedData.stats);
+                    } catch (error) {
+                        showStatus('Error processing CSV file: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                showStatus('Please select a valid CSV file.', 'error');
             }
         });
 
-        function showStatus(message, type) {
+        function parseCSV(csvData) {
+            try {
+                const lines = csvData.split('\n').filter(line => line.trim());
+                if (lines.length === 0) {
+                    throw new Error('CSV file is empty');
+                }
+                
+                // Simple CSV parser that handles quotes
+                function parseCSVLine(line) {
+                    const result = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        const nextChar = line[i + 1];
+                        
+                        if (char === '"' && inQuotes && nextChar === '"') {
+                            current += '"';
+                            i++; // Skip next quote
+                        } else if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            result.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current.trim());
+                    return result;
+                }
+                
+                const headers = parseCSVLine(lines[0]);
+                const rows = [];
+                
+                console.log('Headers:', headers); // Debug log
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const values = parseCSVLine(lines[i]);
+                    if (values.length > 0 && values.some(v => v.trim())) { // Skip empty rows
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header] = values[index] || '';
+                        });
+                        rows.push(row);
+                    }
+                }
+                
+                console.log('Parsed rows:', rows.length); // Debug log
+                console.log('First row:', rows[0]); // Debug log
+                
+                if (rows.length === 0) {
+                    throw new Error('No data rows found in CSV');
+                }
+                
+                // Calculate statistics
+                const totalCells = rows.length * headers.length;
+                let missingCells = 0;
+                const columnStats = [];
+                
+                headers.forEach(header => {
+                    let missing = 0;
+                    let hasNumbers = 0;
+                    
+                    rows.forEach(row => {
+                        const value = row[header];
+                        if (!value || value.trim() === '') {
+                            missing++;
+                            missingCells++;
+                        } else {
+                            // Check if it's a number (remove $ and , first)
+                            const cleanValue = value.replace(/[$,]/g, '');
+                            if (!isNaN(parseFloat(cleanValue)) && isFinite(cleanValue)) {
+                                hasNumbers++;
+                            }
+                        }
+                    });
+                    
+                    columnStats.push({
+                        name: header,
+                        type: hasNumbers > rows.length * 0.5 ? 'Numeric' : 'Text',
+                        missing: missing,
+                        missing_percent: parseFloat(((missing / rows.length) * 100).toFixed(1))
+                    });
+                });
+                
+                return {
+                    preview: rows.slice(0, 5), // First 5 rows for preview
+                    stats: {
+                        overall_stats: {
+                            rows: rows.length,
+                            columns: headers.length,
+                            missing_cells: missingCells,
+                            missing_cells_percent: parseFloat(((missingCells / totalCells) * 100).toFixed(1))
+                        },
+                        column_stats: columnStats
+                    }
+                };
+            } catch (error) {
+                console.error('CSV parsing error:', error);
+                throw new Error('Failed to parse CSV: ' + error.message);
+            }
+        }
             statusMessage.innerHTML = type === 'loading' ? 
                 '<span class="loading"></span>' + message : message;
             statusMessage.className = type;
-        }
+        
 
-        function showPreview() {
-            const previewData = [
-                { Name: "John Doe", Age: 28, Email: "john@email.com", Salary: "$65,000" },
-                { Name: "Jane Smith", Age: 32, Email: "jane@email.com", Salary: "$72,000" },
-                { Name: "Bob Johnson", Age: 45, Email: "", Salary: "$58,000" },
-                { Name: "Alice Brown", Age: 29, Email: "alice@email.com", Salary: "$69,000" },
-                { Name: "Charlie Wilson", Age: 38, Email: "charlie@email.com", Salary: "$75,000" }
-            ];
+        function showPreview(previewData) {
+            if (!previewData || previewData.length === 0) {
+                document.getElementById('preview-container').innerHTML = '<p>No data to preview</p>';
+                return;
+            }
 
             const headers = Object.keys(previewData[0]);
             let tableHTML = '<table><thead><tr>';
@@ -521,24 +596,7 @@
             columnContainer.innerHTML = columnHTML;
         }
 
-        // Demo functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add demo button for testing
-            const demoButton = document.createElement('button');
-            demoButton.textContent = '🎮 Load Demo Data';
-            demoButton.className = 'upload-button';
-            demoButton.style.marginLeft = '10px';
-            demoButton.onclick = function() {
-                showStatus('Loading demo data...', 'loading');
-                setTimeout(() => {
-                    showStatus('Demo data loaded!', 'success');
-                    showPreview();
-                    buildDashboard(sampleData);
-                }, 1000);
-            };
-            
-            document.querySelector('.upload-section').appendChild(demoButton);
-        });
+
     </script>
 </body>
 </html>
