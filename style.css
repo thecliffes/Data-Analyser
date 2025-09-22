@@ -110,3 +110,11 @@ tbody tr:nth-of-type(even) {
 tbody tr:hover {
     background-color: #f1f1f1;
 }
+
+/* --- Data Summary Table Styling --- */
+.overall-stats-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;  /* 2 equal columns */
+    grid-template-rows: 1fr 1fr;     /* 2 equal rows */
+    gap: 20px;                       /* Space between cards */
+}
