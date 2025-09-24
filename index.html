@@ -359,8 +359,8 @@
         </section>
     </main>
 
-    <!-- REPLACE THE SCRIPT SECTION WITH THIS -->
     <script>
+        // --- 0. Makes sure code does not run until html is fully loaded ---
         document.addEventListener('DOMContentLoaded', () => {
             // --- 1. Get references to ALL the HTML elements ---
             const fileInput = document.getElementById('csv-upload');
@@ -373,6 +373,7 @@
             const columnGridContainer = document.getElementById('column-details-grid');
 
             // --- 2. Add the event listener for the file input ---
+            // runs 'handleFileSelect()' when a user picks a csv file 
             fileInput.addEventListener('change', handleFileSelect);
 
             /**
