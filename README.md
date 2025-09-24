@@ -11,3 +11,21 @@ Column details (numeric stats, unique values, and histograms for numeric columns
 Built with HTML, CSS, JavaScript, and Chart.js
  for visualizations.
 Requires a backend API to handle CSV uploads and summarization.
+
+# Features
+
+Upload a CSV file from your computer
+
+View the first few rows in a preview table
+
+Get overall dataset statistics (rows, columns, missing values)
+
+Explore per-column details:
+
+Numeric columns → mean, std dev, min, max, histogram
+
+Categorical columns → count of unique values
+
+Interactive charts powered by Chart.js
+
+Responsive design with styled dashboard cards
