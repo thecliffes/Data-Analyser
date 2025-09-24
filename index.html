@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -335,268 +335,193 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📊 Interactive Data Tool</h1>
-            <p>Upload a CSV file to instantly generate summaries and visualizations.</p>
-        </header>
 
-        <main>
-            <!-- File Upload Section -->
-            <div class="upload-section">
-                <label for="csv-upload" class="upload-button">📁 Select CSV File</label>
-                <input type="file" id="csv-upload" accept=".csv" hidden>
-                <div id="status-message"></div>
-            </div>
+    <header>
+        <h1>Interactive Data Tool</h1>
+        <p>Upload a CSV file to instantly generate summaries and visualizations.</p>
+    </header>
 
-            <!-- Data Preview Section -->
-            <section id="preview-section" class="hidden">
-                <h2>📋 Data Preview</h2>
-                <div id="preview-container"></div>
-            </section>
+    <main>
+        <label for="csv-upload" class="upload-button">Select CSV File</label>
+        <input type="file" id="csv-upload" accept=".csv" hidden>
+        <div id="status-message"></div>
 
-            <!-- Dashboard Section -->
-            <section id="dashboard-container" class="hidden">
-                <h2>📈 Data Summary</h2>
-                <div id="overall-stats-cards">
-                    <!-- Stat cards will be populated by JavaScript -->
-                </div>
-                
-                <h2>📊 Column Details</h2>
-                <div id="column-details-grid">
-                    <!-- Column detail cards will be populated by JavaScript -->
-                </div>
-            </section>
-        </main>
-    </div>
+        <section id="preview-section" class="hidden">
+             <h2>Data Preview</h2>
+             <div id="preview-container"></div>
+        </section>
 
+        <section id="dashboard-container" class="hidden">
+            <h2>Data Summary</h2>
+            <div id="overall-stats-cards"></div>
+            <h2>Column Details</h2>
+            <div id="column-details-grid"></div>
+        </section>
+    </main>
+
+    <!-- REPLACE THE SCRIPT SECTION WITH THIS -->
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. Get references to ALL the HTML elements ---
+            const fileInput = document.getElementById('csv-upload');
+            const statusMessage = document.getElementById('status-message');
+            const previewContainer = document.getElementById('preview-container');
+            const previewSection = document.getElementById('preview-section');
+
+            const dashboardContainer = document.getElementById('dashboard-container');
+            const overallStatsContainer = document.getElementById('overall-stats-cards');
+            const columnGridContainer = document.getElementById('column-details-grid');
+
+            // --- 2. Add the event listener for the file input ---
+            fileInput.addEventListener('change', handleFileSelect);
+
+            /**
+             * Handles the file selection event and the entire analysis workflow.
+             */
+            async function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) {
+                    statusMessage.textContent = 'No file selected.';
+                    return;
+                }
+
+                // --- Clear previous results on new upload ---
+                previewSection.classList.add('hidden');
+                dashboardContainer.classList.add('hidden');
+                previewContainer.innerHTML = '';
 
 
-        // DOM elements
-        const fileInput = document.getElementById('csv-upload');
-        const statusMessage = document.getElementById('status-message');
-        const previewSection = document.getElementById('preview-section');
-        const dashboardContainer = document.getElementById('dashboard-container');
+                // --- 3. Step 1: Upload the file ---
+                statusMessage.textContent = `Uploading "${file.name}"...`;
+                const formData = new FormData();
+                formData.append('file', file);
 
-        // File upload handler
-        fileInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file && file.type === 'text/csv') {
-                showStatus('Processing CSV file...', 'loading');
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const csvData = e.target.result;
-                        const parsedData = parseCSV(csvData);
-                        showStatus('CSV file loaded successfully!', 'success');
-                        showPreview(parsedData.preview);
-                        buildDashboard(parsedData.stats);
-                    } catch (error) {
-                        showStatus('Error processing CSV file: ' + error.message, 'error');
+                try {
+                    const uploadResponse = await fetch('http://127.0.0.1:8000/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!uploadResponse.ok) {
+                        throw new Error(`Upload failed with status: ${uploadResponse.status}`);
                     }
-                };
-                reader.readAsText(file);
-            } else {
-                showStatus('Please select a valid CSV file.', 'error');
+
+                    const uploadResult = await uploadResponse.json();
+                    
+                    // --- 4. Display the initial preview table ---
+                    displayPreview(uploadResult.preview);
+                    statusMessage.textContent = 'Upload successful! Generating summary...';
+
+                    // --- 5. Step 2: Fetch the full summary analysis ---
+                    const summaryResponse = await fetch(`http://127.0.0.1:8000/summarize/${uploadResult.filename}`);
+                    if (!summaryResponse.ok) {
+                        throw new Error(`Summary failed with status: ${summaryResponse.status}`);
+                    }
+
+                    const summaryData = await summaryResponse.json();
+                    
+                    // --- 6. Build the dashboard with the summary data ---
+                    buildDashboard(summaryData);
+                    statusMessage.textContent = 'Analysis complete!';
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    statusMessage.textContent = `Error: ${error.message}`;
+                }
+            }
+
+            /**
+             * Renders the data preview as an HTML table.
+             */
+            function displayPreview(data) {
+                if (!data || data.length === 0) {
+                    previewContainer.innerHTML = '<p>No preview data available.</p>';
+                    return;
+                }
+                previewSection.classList.remove('hidden');
+                const headers = Object.keys(data[0]);
+                let tableHTML = '<table><thead><tr>';
+                headers.forEach(header => tableHTML += `<th>${header}</th>`);
+                tableHTML += '</tr></thead><tbody>';
+
+                data.forEach(row => {
+                    tableHTML += '<tr>';
+                    headers.forEach(header => tableHTML += `<td>${row[header]}</td>`);
+                    tableHTML += '</tr>';
+                });
+
+                tableHTML += '</tbody></table>';
+                previewContainer.innerHTML = tableHTML;
+            }
+
+            /**
+             * --- NEW: Builds the entire summary dashboard from summary data ---
+             */
+            function buildDashboard(data) {
+                overallStatsContainer.innerHTML = '';
+                columnGridContainer.innerHTML = '';
+
+                // Build Overall Stat Cards
+                const stats = data.overall_stats;
+                overallStatsContainer.innerHTML = `
+                    <div class="stat-card"><h3>${stats.rows}</h3><p>Rows</p></div>
+                    <div class="stat-card"><h3>${stats.columns}</h3><p>Columns</p></div>
+                    <div class="stat-card"><h3>${stats.missing_cells}</h3><p>Missing Cells</p></div>
+                    <div class="stat-card"><h3>${stats.missing_cells_percent}%</h3><p>Missing (%)</p></div>
+                `;
+
+                // Build Column Detail Cards
+                data.column_details.forEach(col => {
+                    const colCard = document.createElement('div');
+                    colCard.className = 'column-card';
+                    
+                    let cardContent = `
+                        <h3>${col.column_name}</h3>
+                        <p><strong>Type:</strong> ${col.data_type}</p>
+                        <p><strong>Missing:</strong> ${col.missing_values}</p>
+                    `;
+
+                    if (col.type === 'numeric') {
+                        cardContent += `
+                            <p><strong>Mean:</strong> ${col.stats.mean}</p>
+                            <p><strong>Std Dev:</strong> ${col.stats.std}</p>
+                            <p><strong>Min:</strong> ${col.stats.min} | <strong>Max:</strong> ${col.stats.max}</p>
+                            <canvas id="hist-${col.column_name}"></canvas>
+                        `;
+                    } else if (col.type === 'categorical') {
+                        cardContent += `<p><strong>Unique Values:</strong> ${col.unique_values}</p>`;
+                    }
+                    
+                    colCard.innerHTML = cardContent;
+                    columnGridContainer.appendChild(colCard);
+
+                    // Render Charts
+                    if (col.type === 'numeric' && col.histogram) {
+                        const ctx = document.getElementById(`hist-${col.column_name}`).getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: col.histogram.bins.slice(1).map(b => b.toFixed(1)),
+                                datasets: [{
+                                    label: 'Frequency',
+                                    data: col.histogram.counts,
+                                    backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                                    borderColor: 'rgba(0, 123, 255, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: { 
+                                scales: { x: { ticks: { maxRotation: 70, minRotation: 70 } } },
+                                plugins: { legend: { display: false } } 
+                            }
+                        });
+                    }
+                });
+
+                dashboardContainer.classList.remove('hidden');
             }
         });
-
-        function parseCSV(csvData) {
-            try {
-                const lines = csvData.split('\n').filter(line => line.trim());
-                if (lines.length === 0) {
-                    throw new Error('CSV file is empty');
-                }
-                
-                // Simple CSV parser that handles quotes
-                function parseCSVLine(line) {
-                    const result = [];
-                    let current = '';
-                    let inQuotes = false;
-                    
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
-                        const nextChar = line[i + 1];
-                        
-                        if (char === '"' && inQuotes && nextChar === '"') {
-                            current += '"';
-                            i++; // Skip next quote
-                        } else if (char === '"') {
-                            inQuotes = !inQuotes;
-                        } else if (char === ',' && !inQuotes) {
-                            result.push(current.trim());
-                            current = '';
-                        } else {
-                            current += char;
-                        }
-                    }
-                    result.push(current.trim());
-                    return result;
-                }
-                
-                const headers = parseCSVLine(lines[0]);
-                const rows = [];
-                
-                console.log('Headers:', headers); // Debug log
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const values = parseCSVLine(lines[i]);
-                    if (values.length > 0 && values.some(v => v.trim())) { // Skip empty rows
-                        const row = {};
-                        headers.forEach((header, index) => {
-                            row[header] = values[index] || '';
-                        });
-                        rows.push(row);
-                    }
-                }
-                
-                console.log('Parsed rows:', rows.length); // Debug log
-                console.log('First row:', rows[0]); // Debug log
-                
-                if (rows.length === 0) {
-                    throw new Error('No data rows found in CSV');
-                }
-                
-                // Calculate statistics
-                const totalCells = rows.length * headers.length;
-                let missingCells = 0;
-                const columnStats = [];
-                
-                headers.forEach(header => {
-                    let missing = 0;
-                    let hasNumbers = 0;
-                    
-                    rows.forEach(row => {
-                        const value = row[header];
-                        if (!value || value.trim() === '') {
-                            missing++;
-                            missingCells++;
-                        } else {
-                            // Check if it's a number (remove $ and , first)
-                            const cleanValue = value.replace(/[$,]/g, '');
-                            if (!isNaN(parseFloat(cleanValue)) && isFinite(cleanValue)) {
-                                hasNumbers++;
-                            }
-                        }
-                    });
-                    
-                    columnStats.push({
-                        name: header,
-                        type: hasNumbers > rows.length * 0.5 ? 'Numeric' : 'Text',
-                        missing: missing,
-                        missing_percent: parseFloat(((missing / rows.length) * 100).toFixed(1))
-                    });
-                });
-                
-                return {
-                    preview: rows.slice(0, 5), // First 5 rows for preview
-                    stats: {
-                        overall_stats: {
-                            rows: rows.length,
-                            columns: headers.length,
-                            missing_cells: missingCells,
-                            missing_cells_percent: parseFloat(((missingCells / totalCells) * 100).toFixed(1))
-                        },
-                        column_stats: columnStats
-                    }
-                };
-            } catch (error) {
-                console.error('CSV parsing error:', error);
-                throw new Error('Failed to parse CSV: ' + error.message);
-            }
-        }
-            statusMessage.innerHTML = type === 'loading' ? 
-                '<span class="loading"></span>' + message : message;
-            statusMessage.className = type;
-        
-
-        function showPreview(previewData) {
-            if (!previewData || previewData.length === 0) {
-                document.getElementById('preview-container').innerHTML = '<p>No data to preview</p>';
-                return;
-            }
-
-            const headers = Object.keys(previewData[0]);
-            let tableHTML = '<table><thead><tr>';
-            
-            headers.forEach(header => {
-                tableHTML += `<th>${header}</th>`;
-            });
-            tableHTML += '</tr></thead><tbody>';
-
-            previewData.forEach(row => {
-                tableHTML += '<tr>';
-                headers.forEach(header => {
-                    tableHTML += `<td>${row[header] || '—'}</td>`;
-                });
-                tableHTML += '</tr>';
-            });
-
-            tableHTML += '</tbody></table>';
-            document.getElementById('preview-container').innerHTML = tableHTML;
-            previewSection.classList.remove('hidden');
-        }
-
-        function buildDashboard(data) {
-            buildStatCards(data);
-            buildColumnDetails(data);
-            dashboardContainer.classList.remove('hidden');
-        }
-
-        function buildStatCards(data) {
-            const statsContainer = document.getElementById('overall-stats-cards');
-            const stats = data.overall_stats;
-
-            statsContainer.innerHTML = `
-                <div class="stat-card">
-                    <h3>${stats.rows.toLocaleString()}</h3>
-                    <p>Rows</p>
-                </div>
-                <div class="stat-card">
-                    <h3>${stats.columns}</h3>
-                    <p>Columns</p>
-                </div>
-                <div class="stat-card">
-                    <h3>${stats.missing_cells.toLocaleString()}</h3>
-                    <p>Missing Cells</p>
-                </div>
-                <div class="stat-card">
-                    <h3>${stats.missing_cells_percent}%</h3>
-                    <p>Missing (%)</p>
-                </div>
-            `;
-        }
-
-        function buildColumnDetails(data) {
-            const columnContainer = document.getElementById('column-details-grid');
-            let columnHTML = '';
-
-            data.column_stats.forEach(column => {
-                columnHTML += `
-                    <div class="column-card">
-                        <h3>${column.name}</h3>
-                        <div class="column-info">
-                            <span>Type:</span>
-                            <span>${column.type}</span>
-                        </div>
-                        <div class="column-info">
-                            <span>Missing Values:</span>
-                            <span>${column.missing.toLocaleString()}</span>
-                        </div>
-                        <div class="column-info">
-                            <span>Missing (%):</span>
-                            <span>${column.missing_percent}%</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            columnContainer.innerHTML = columnHTML;
-        }
-
-
     </script>
 </body>
 </html>
+
