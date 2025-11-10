@@ -80,7 +80,17 @@ async def get_summary(filename: str):
             col_summary["values"] = np.array(col_data.dropna()).tolist()
         
         
+
+        elif pd.api.types.is_object_dtype(col_data) :
+            col_summary["type"] = "categorical"
+            value_counts = col_data.value_counts().nlargest(5).to_dict()
+            col_summary["value_counts"] = {str(k): int(v) for k, v in value_counts.items()}
+
+            col_summary["values"] = np.array(col_data).tolist()
+        
+
         print(col_summary)
         column_details.append(col_summary)
+
 
     return {"overall_stats": overall_stats, "column_details": column_details}
