@@ -1,8 +1,10 @@
 import pandas as pd
 import io
-import numpy as np  # --- ADD THIS LINE --- for histogram calculations
+import numpy as np 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+# To run: py -m uvicorn main:app --reload
 
 app = FastAPI()
 
@@ -14,8 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- NEW: A simple dictionary to temporarily store the DataFrame ---
-# In a production app, you would use a more robust cache like Redis.
 temp_storage = {}
 
 @app.post("/upload")
@@ -62,11 +62,11 @@ async def get_summary(filename: str):
 
     # --- 2. Column-by-Column Analysis ---
     column_details = []
-    for col in df.columns:
-        col_data = df[col]
+    for col in range(1, len(df.columns)):
+        col_data = df[df.columns[col]]
         
         col_summary = {
-            "column_name": col,
+            "column_name": df.columns[col],
             "data_type": str(col_data.dtype),
             "missing_values": int(col_data.isnull().sum())
         }
