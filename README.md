@@ -1,16 +1,17 @@
 # Interactive Data Tool
+A web application where a user can upload a data file (e.g. a CSV) and instantly get back a comprehensive, interactive dashboard for Exploratory Data Analysis (EDA) without writing a single line of code. Think of it as a simplified, web-based version of tools like Tableau or Power BI.
 
-A simple web-based tool that allows users to upload a CSV file and instantly view:
+Allows users to upload a CSV file and instantly view:
 
-A data preview table
+- A data preview table
 
-A summary dashboard with row/column stats
+- A summary dashboard with row/column stats
 
-Column details (numeric stats, unique values, and histograms for numeric columns)
+- Column details (numeric stats, unique values, and histograms for numeric columns)
 
-Built with HTML, CSS, JavaScript, and Chart.js
+- Built with HTML, CSS, JavaScript, and Chart.js
  for visualisations.
-Requires a backend API to handle CSV uploads and summarisation.
+- Requires a backend API to handle CSV uploads and summarisation.
 
 # Features
 
