@@ -497,15 +497,15 @@
                     columnGridContainer.appendChild(colCard);
 
                     // Render Charts
-                    if (col.type === 'numeric' && col.histogram) {
+                    if (col.type === 'numeric') {
                         const ctx = document.getElementById(`hist-${col.column_name}`).getContext('2d');
                         new Chart(ctx, {
                             type: 'bar',
                             data: {
-                                labels: col.histogram.bins.slice(1).map(b => b.toFixed(1)),
+                                labels: col.index,
                                 datasets: [{
                                     label: 'Frequency',
-                                    data: col.histogram.counts,
+                                    data: col.values,
                                     backgroundColor: 'rgba(0, 123, 255, 0.5)',
                                     borderColor: 'rgba(0, 123, 255, 1)',
                                     borderWidth: 1

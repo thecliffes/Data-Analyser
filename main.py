@@ -66,6 +66,7 @@ async def get_summary(filename: str):
         col_data = df[df.columns[col]]
         
         col_summary = {
+            "index": [i for i in range(1, len(col_data.dropna()))],
             "column_name": df.columns[col],
             "data_type": str(col_data.dtype),
             "missing_values": int(col_data.isnull().sum())
@@ -76,19 +77,10 @@ async def get_summary(filename: str):
             stats = col_data.describe().to_dict()
             col_summary["stats"] = {k: round(v, 2) if isinstance(v, float) else v for k, v in stats.items()}
             
-            counts, bins = np.histogram(col_data.dropna(), bins=10)
-            col_summary["histogram"] = {
-                "counts": counts.tolist(),
-                "bins": bins.tolist()
-            }
-            
-        elif col_data.dtype == 'object': # Simplified check for categorical
-            col_summary["type"] = "categorical"
-            col_summary["unique_values"] = int(col_data.nunique())
-            
-            value_counts = col_data.value_counts().nlargest(5).to_dict()
-            col_summary["value_counts"] = {str(k): int(v) for k, v in value_counts.items()}
-            
+            col_summary["values"] = np.array(col_data.dropna()).tolist()
+        
+        
+        print(col_summary)
         column_details.append(col_summary)
 
     return {"overall_stats": overall_stats, "column_details": column_details}
