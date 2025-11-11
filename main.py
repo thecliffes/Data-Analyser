@@ -1,7 +1,7 @@
 import pandas as pd
 import io
 import numpy as np 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 # To run: py -m uvicorn main:app --reload
@@ -94,3 +94,19 @@ async def get_summary(filename: str):
 
 
     return {"overall_stats": overall_stats, "column_details": column_details}
+
+@app.delete("/delete/{filename}")
+async def delete_file(filename: str):
+    """
+    Deletes a file from the temporary in-memory storage.
+    """
+    if filename not in temp_storage:
+        raise HTTPException(status_code=404, detail="File not found in storage.")
+
+    try:
+        # Remove the DataFrame from the dictionary
+        del temp_storage[filename]
+        return {"status": "File deleted successfully", "filename": filename}
+    except Exception as e:
+        # This is a fallback, though the 'del' operation is unlikely to fail
+        raise HTTPException(status_code=500, detail=f"Error deleting file: {e}")

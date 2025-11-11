@@ -332,6 +332,25 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        #delete-button {
+            background: #d9534f; /* A clear 'delete' red */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        #delete-button:hover {
+            background: #c9302c;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(217, 83, 79, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -345,6 +364,8 @@
         <label for="csv-upload" class="upload-button">Select CSV File</label>
         <input type="file" id="csv-upload" accept=".csv" hidden>
         <div id="status-message"></div>
+
+        <button id="delete-button" class="hidden">Delete File & Clear</button>
 
         <section id="preview-section" class="hidden">
              <h2>Data Preview</h2>
@@ -371,10 +392,14 @@
             const dashboardContainer = document.getElementById('dashboard-container');
             const overallStatsContainer = document.getElementById('overall-stats-cards');
             const columnGridContainer = document.getElementById('column-details-grid');
+            const deleteButton = document.getElementById('delete-button');
+
+            let currentFilename = null;
 
             // --- 2. Add the event listener for the file input ---
             // runs 'handleFileSelect()' when a user picks a csv file 
             fileInput.addEventListener('change', handleFileSelect);
+            deleteButton.addEventListener('click', handleDeleteFile);
 
             /**
              * Handles the file selection event and the entire analysis workflow.
@@ -413,6 +438,9 @@
                     displayPreview(uploadResult.preview);
                     statusMessage.textContent = 'Upload successful! Generating summary...';
 
+                    currentFilename = uploadResult.filename;
+                    deleteButton.classList.remove('hidden');
+
                     // --- 5. Step 2: Fetch the full summary analysis ---
                     const summaryResponse = await fetch(`http://127.0.0.1:8000/summarize/${uploadResult.filename}`);
                     if (!summaryResponse.ok) {
@@ -428,6 +456,48 @@
                 } catch (error) {
                     console.error('Error:', error);
                     statusMessage.textContent = `Error: ${error.message}`;
+                    deleteButton.classList.add('hidden');
+                }
+            }
+
+            /**
+             * Handles the delete button click event.
+             */
+            async function handleDeleteFile() {
+                if (!currentFilename) return; // Do nothing if no file is loaded
+
+                try {
+                    const response = await fetch(`http://127.0.0.1:8000/delete/${currentFilename}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.detail || 'Failed to delete file on server.');
+                    }
+
+                    // --- If deletion is successful, reset the UI ---
+                    statusMessage.textContent = 'File deleted. Select a new file to analyze.';
+                    statusMessage.className = ''; // Reset status color
+
+                    // Hide dashboard and preview
+                    previewSection.classList.add('hidden');
+                    dashboardContainer.classList.add('hidden');
+                    deleteButton.classList.add('hidden');
+
+                    // Clear content
+                    previewContainer.innerHTML = '';
+                    overallStatsContainer.innerHTML = '';
+                    columnGridContainer.innerHTML = '';
+
+                    // Reset state
+                    currentFilename = null;
+                    fileInput.value = null; // Clears the file input
+
+                } catch (error) {
+                    console.error('Delete Error:', error);
+                    statusMessage.textContent = `Error: ${error.message}`;
+                    statusMessage.className = 'error'; // Use existing error style
                 }
             }
 
@@ -487,12 +557,12 @@
                             <p><strong>Mean:</strong> ${col.stats.mean}</p>
                             <p><strong>Std Dev:</strong> ${col.stats.std}</p>
                             <p><strong>Min:</strong> ${col.stats.min} | <strong>Max:</strong> ${col.stats.max}</p>
-                            <canvas id="hist-${col.column_name}"></canvas>
+                            <canvas id="graph-${col.column_name}"></canvas>
                         `;
                     } else if (col.type === 'categorical') {
                         cardContent += 
                             `<p><strong>Unique Values:</strong> ${col.unique_values}</p>
-                             <canvas id="hist-${col.column_name}"></canvas>
+                             <canvas id="graph-${col.column_name}"></canvas>
                         `;
                     }
                     
@@ -501,7 +571,7 @@
 
                     // Render Charts
                     if (col.type === 'numeric') {
-                        const ctx = document.getElementById(`hist-${col.column_name}`).getContext('2d');
+                        const ctx = document.getElementById(`graph-${col.column_name}`).getContext('2d');
                         new Chart(ctx, {
                             type: 'bar',
                             data: {
@@ -537,7 +607,7 @@
                             'rgba(255, 159, 64, 0.7)'
                         ];
 
-                        const ctx = document.getElementById(`hist-${col.column_name}`).getContext('2d');
+                        const ctx = document.getElementById(`graph-${col.column_name}`).getContext('2d');
                         new Chart(ctx, {
                             type: 'pie', 
                             data: {
