@@ -351,6 +351,54 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(217, 83, 79, 0.3);
         }
+
+        .column-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative; 
+        }
+
+        .column-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .column-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 8px;
+            padding-right: 25px; 
+        }
+
+        .delete-col-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f1f1f1;
+            color: #888;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 22px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .delete-col-btn:hover {
+            background: #d9534f; /* Use your delete-red color */
+            color: white;
+        }
+
     </style>
 </head>
 <body>
@@ -547,6 +595,7 @@
                     colCard.className = 'column-card';
                     
                     let cardContent = `
+                        <button type="button" class="delete-col-btn" title="Hide column">&times;</button>
                         <h3>${col.column_name}</h3>
                         <p><strong>Type:</strong> ${col.data_type}</p>
                         <p><strong>Missing:</strong> ${col.missing_values}</p>
@@ -567,6 +616,13 @@
                     }
                     
                     colCard.innerHTML = cardContent;
+                    const deleteBtn = colCard.querySelector('.delete-col-btn');
+                    deleteBtn.addEventListener('click', (e) => {
+                        // Stop the event from bubbling up (just in case)
+                        e.stopPropagation();
+                        // Remove this card from the page
+                        colCard.remove();
+                    });
                     columnGridContainer.appendChild(colCard);
 
                     // Render Charts
