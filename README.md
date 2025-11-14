@@ -30,3 +30,10 @@ Allows users to upload a CSV file and instantly view:
 - Interactive charts powered by Chart.js
 
 - Responsive design with styled dashboard cards
+
+# Usage  
+- Click “Upload CSV” and select your file.  
+- The dashboard will load and display a preview table of the first 5 rows.  
+- Navigate to “Summary” to see global stats.  
+- Click on any column name to view detailed stats and a histogram or bar chart.  
+
