@@ -3,6 +3,7 @@ import io
 import numpy as np 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+import operator 
 
 # To run: py -m uvicorn main:app --reload
 
@@ -51,7 +52,6 @@ async def get_summary(filename: str):
         raise HTTPException(status_code=404, detail="File not found. Please upload again.")
 
     df = temp_storage[filename]
-
     # --- 1. Overall Summary ---
     overall_stats = {
         "rows": int(df.shape[0]),
@@ -64,7 +64,10 @@ async def get_summary(filename: str):
     column_details = []
     for col in range(1, len(df.columns)):
         col_data = df[df.columns[col]]
-        
+
+        if operator.contains(df.columns[col], 'Date'):
+            col_data = pd.to_datetime(col_data, dayfirst=True)
+
         col_summary = {
             "index": [i for i in range(1, len(col_data.dropna()))],
             "column_name": df.columns[col],
@@ -79,6 +82,12 @@ async def get_summary(filename: str):
             
             col_summary["values"] = np.array(col_data.dropna()).tolist()
         
+        elif pd.api.types.is_datetime64_dtype(col_data) :
+            col_summary["type"] = "date"
+            value_counts = col_data.value_counts().nlargest(5).to_dict()
+            col_summary["value_counts"] = {str(k): int(v) for k, v in value_counts.items()}
+
+            col_summary["values"] = np.array(col_data).tolist()
         
 
         elif pd.api.types.is_object_dtype(col_data) :
@@ -88,15 +97,8 @@ async def get_summary(filename: str):
 
             col_summary["values"] = np.array(col_data).tolist()
 
-        elif pd.api.types.is_datetime64_dtype(col_data) :
-            col_summary["type"] = "date"
-            value_counts = col_data.value_counts().nlargest(5).to_dict()
-            col_summary["value_counts"] = {str(k): int(v) for k, v in value_counts.items()}
 
-            col_summary["values"] = np.array(col_data).tolist()
-        
-
-        print(col_summary)
+    
         column_details.append(col_summary)
 
 
