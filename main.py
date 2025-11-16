@@ -87,6 +87,13 @@ async def get_summary(filename: str):
             col_summary["value_counts"] = {str(k): int(v) for k, v in value_counts.items()}
 
             col_summary["values"] = np.array(col_data).tolist()
+
+        elif pd.api.types.is_datetime64_dtype(col_data) :
+            col_summary["type"] = "date"
+            value_counts = col_data.value_counts().nlargest(5).to_dict()
+            col_summary["value_counts"] = {str(k): int(v) for k, v in value_counts.items()}
+
+            col_summary["values"] = np.array(col_data).tolist()
         
 
         print(col_summary)
